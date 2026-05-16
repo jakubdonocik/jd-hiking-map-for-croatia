@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dodaj szlak</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input[type="file"],
+        select,
+        input[list] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .map-container {
+            margin-top: 20px;
+        }
+
+        #wezly-map {
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+
+        .info {
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Dodaj szlak z pliku GPX</h2>
+
+{% if messages %}
+    {% for message in messages %}
+        <div style="padding:10px; background:#d4edda; border:1px solid #c3e6cb; margin-bottom:15px;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <label for="gpx_file">Plik GPX</label>
+    <input type="file" id="gpx_file" name="gpx_file" accept=".gpx" required>
+
+    <label for="kolor">Kolor szlaku</label>
+    <select id="kolor" name="kolor" required>
+        <option value="czerwony">Czerwony</option>
+        <option value="niebieski">Niebieski</option>
+        <option value="zielony">Zielony</option>
+        <option value="czarny">Czarny</option>
+        <option value="żółty">Żółty</option>
+    </select>
+
+    <label>Węzeł początkowy</label>
+    <input
+        list="wezly_start"
+        id="start_szlaku_input"
+        placeholder="Wpisz nazwę lub kliknij na mapie"
+        autocomplete="off"
+        required
+    >
+    <input type="hidden" id="start_szlaku" name="start_szlaku">
+
+    <datalist id="wezly_start">
+        {% for wezel in wezly %}
+            <option value="{{ wezel.id_obiektu.nazwa_obiektu }}"></option>
+        {% endfor %}
+    </datalist>
+
+    <label>Węzeł końcowy</label>
+    <input
+        list="wezly_koniec"
+        id="koniec_szlaku_input"
+        placeholder="Wpisz nazwę lub kliknij na mapie"
+        autocomplete="off"
+        required
+    >
+    <input type="hidden" id="koniec_szlaku" name="koniec_szlaku">
+
+    <datalist id="wezly_koniec">
+        {% for wezel in wezly %}
+            <option value="{{ wezel.id_obiektu.nazwa_obiektu }}"></option>
+        {% endfor %}
+    </datalist>
+
+    <div class="map-container">
+        <label>Wybór węzła z mapy</label>
+        <div class="info">
+            Kliknij w pole start/koniec, a następnie wybierz węzeł na mapie
+        </div>
+        <div id="wezly-map"></div>
+    </div>
+
+    <button type="submit">Dodaj szlak</button>
+    <a href="/" style="margin-left:15px;">Anuluj</a>
+</form>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script id="wezly-data" type="application/json">
+    {{ wezly_json|safe }}
+</script>
+
+<script>
+    const wezlyData = JSON.parse(document.getElementById('wezly-data').textContent);
+    const wezlyMap = {};
+    wezlyData.forEach(w => wezlyMap[w.nazwa] = w.id);
+
+    function bindInput(inputId, hiddenId) {
+        document.getElementById(inputId).addEventListener('input', e => {
+            const id = wezlyMap[e.target.value];
+            document.getElementById(hiddenId).value = id || '';
+        });
+    }
+
+    bindInput('start_szlaku_input', 'start_szlaku');
+    bindInput('koniec_szlaku_input', 'koniec_szlaku');
+
+    document.querySelector('form').addEventListener('submit', e => {
+        if (!start_szlaku.value || !koniec_szlaku.value) {
+            e.preventDefault();
+            alert('Musisz wybrać istniejące węzły');
+        }
+    });
+
+    let tryb = 'start';
+
+    start_szlaku_input.addEventListener('focus', () => tryb = 'start');
+    koniec_szlaku_input.addEventListener('focus', () => tryb = 'koniec');
+
+    const map = L.map('wezly-map').setView([43.5, 16.4], 10);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+        referrerPolicy: 'strict-origin-when-cross-origin'
+    }).addTo(map);
+
+    fetch('/api/wezly/')
+        .then(r => r.json())
+        .then(data => {
+            L.geoJSON(data, {
+                pointToLayer: (f, latlng) =>
+                    L.circleMarker(latlng, {
+                        radius: 6,
+                        color: 'blue',
+                        fillOpacity: 0.8
+                    }),
+                onEachFeature: (f, layer) => {
+                    layer.on('click', () => {
+                        if (tryb === 'start') {
+                            start_szlaku_input.value = f.properties.nazwa;
+                            start_szlaku.value = f.properties.id;
+                        } else {
+                            koniec_szlaku_input.value = f.properties.nazwa;
+                            koniec_szlaku.value = f.properties.id;
+                        }
+                    });
+                }
+            }).addTo(map);
+        });
+</script>
+
+</body>
+</html>

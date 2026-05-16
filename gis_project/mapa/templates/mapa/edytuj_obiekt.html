@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edytuj obiekt</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+        }
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #map {
+            height: 400px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+<h2>Edytuj obiekt: {{ obiekt.nazwa_obiektu }}</h2>
+{% if messages %}
+    {% for message in messages %}
+        <div style="padding:10px; background:#d4edda; border:1px solid #c3e6cb; margin-bottom:15px;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    
+    <label>Nazwa obiektu:</label>
+    <input type="text" name="nazwa" value="{{ obiekt.nazwa_obiektu }}" required>
+    
+    <label>Rodzaj:</label>
+    <select name="rodzaj">
+        {% for r in rodzaje %}
+            <option value="{{ r.id }}" {% if r.id == obiekt.rodzaj_obiektu.id %}selected{% endif %}>
+                {{ r.rodzaj_obiektu }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <label>Szerokość geograficzna (lat):</label>
+    <input type="number" step="any" name="lat" id="lat" value="{{ lat }}" required>
+    
+    <label>Długość geograficzna (lon):</label>
+    <input type="number" step="any" name="lon" id="lon" value="{{ lon }}" required>
+    
+    <label>Wysokość (elevation):</label>
+    <input type="number" step="any" name="elevation" id="elevation" value="{{ elevation }}">
+    
+    <label>Opis:</label>
+    <textarea name="opis" rows="4">{{ obiekt.opis }}</textarea>
+    
+    <button type="submit">Zapisz zmiany</button>
+    <a href="/" style="margin-left: 10px;">Anuluj</a>
+</form>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var startLat = parseFloat("{{ lat }}");
+    var startLon = parseFloat("{{ lon }}");
+    
+    const map = L.map('map').setView([startLat, startLon], 10);
+    
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+        referrerPolicy: 'strict-origin-when-cross-origin'
+    }).addTo(map);
+    
+    let marker = L.marker([startLat, startLon]).addTo(map);
+    
+    map.on('click', async function (e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lon = e.latlng.lng.toFixed(6);
+    
+    document.getElementById('lat').value = lat;
+    document.getElementById('lon').value = lon;
+    
+    try {
+        const url = '/api/pobierz-wysokosc/?lat=' + lat + '&lon=' + lon;
+        const response = await fetch(url);
+        const data = await response.json();
+        const elevation = data.elevation || 0;
+        document.getElementById('elevation').value = elevation;
+        console.log('Wysokość:', elevation, 'm');
+    } catch (error) {
+        console.error('Błąd:', error);
+        document.getElementById('elevation').value = 0;
+    }
+    
+    marker.setLatLng(e.latlng);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dodaj obiekt</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            margin-top: 15px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<h2>Dodaj obiekt</h2>
+<form method="post">
+    {% csrf_token %}
+    <label>
+        Nazwa obiektu:
+        <input type="text" name="nazwa" required>
+    </label>
+    <label>Rodzaj:</label><br>
+    <select name="rodzaj">
+        {% for r in rodzaje %}
+            <option value="{{ r.id }}">{{ r.rodzaj_obiektu }}</option>
+        {% endfor %}
+    </select><br><br>
+    <label>
+        Szerokość geograficzna (lat):
+        <input type="number" step="any" name="lat" id="lat" required>
+    </label>
+    <label>
+        Długość geograficzna (lon):
+        <input type="number" step="any" name="lon" id="lon" required>
+    </label>
+    <label>
+        Wysokość (elevation):
+        <input type="number" step="any" name="elevation" id="elevation" value="0">
+    </label>
+    <label>
+        Opis:
+        <textarea name="opis"></textarea>
+    </label>
+    <button type="submit">Dodaj obiekt</button>
+</form>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([43.5, 16.4], 10);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+        referrerPolicy: 'strict-origin-when-cross-origin'
+    }).addTo(map);
+    let marker = null;
+    
+    map.on('click', async function (e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lon = e.latlng.lng.toFixed(6);
+    
+    document.getElementById('lat').value = lat;
+    document.getElementById('lon').value = lon;
+    
+    try {
+        const url = '/api/pobierz-wysokosc/?lat=' + lat + '&lon=' + lon;
+        const response = await fetch(url);
+        const data = await response.json();
+        const elevation = data.elevation || 0;
+        document.getElementById('elevation').value = elevation;
+        console.log('Wysokość:', elevation, 'm');
+    } catch (error) {
+        console.error('Błąd:', error);
+        document.getElementById('elevation').value = 0;
+    }
+    
+    if (marker) {
+        marker.setLatLng(e.latlng);
+    } else {
+        marker = L.marker(e.latlng).addTo(map);
+    }
+});
+</script>
+</body>
+</html>

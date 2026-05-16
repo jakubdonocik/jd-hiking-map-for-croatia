@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa szlaków i obiektów</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        .top-bar {
+            background-color: white;
+            border-bottom: 1px solid #ddd;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #333;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-links a, 
+        .nav-links button {
+            background: none;
+            border: none;
+            color: #0066cc;
+            text-decoration: underline;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            padding: 5px 10px;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .btn-plan {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-plan:hover {
+            background-color: #45a049;
+        }
+
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+
+        #map-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        #map {
+            width: 70%;
+            height: 100%;
+            border-right: 1px solid #ddd;
+        }
+
+        #panel-boczny {
+            width: 30%;
+            background-color: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: #4CAF50;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .list-item {
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+
+        .list-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #222;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-top: 5px;
+        }
+
+        .btn-edit {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #45a049;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        .btn-add {
+            background-color: #4CAF50;
+            color: white;
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin: 15px 0;
+        }
+
+        .btn-add:hover {
+            background-color: #45a049;
+        }
+
+        .route-stats {
+            background-color: #e9f7ef;
+            border-left: 3px solid #4CAF50;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .route-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .empty-state {
+            color: #777;
+            font-style: italic;
+            padding: 15px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .info-text {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .insert-btn {
+            text-align: center;
+            padding: 5px;
+            background: #f0f0f0;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #666;
+            border: 1px dashed #999;
+        }
+        .insert-btn:hover {
+            background: #e0e0e0;
+        }
+        .insert-btn.start {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            color: #1565c0;
+        }
+        .insert-btn.middle {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>Mapa szlaków i obiektów</h1>
+    <div class="nav-links">
+        {% if user.is_authenticated %}
+            <span>Witaj, {{ user.username }}!</span>
+            
+            
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-logout">Wyloguj</button>
+            </form>
+        {% else %}
+            
+            <a href="{% url 'login' %}">Zaloguj się</a>
+            <a href="{% url 'register' %}">Zarejestruj się</a>
+        {% endif %}
+    </div>
+</div>
+
+<div id="map-container">
+    <div id="map"></div>
+    
+    <div id="panel-boczny">
+        <div class="tabs">
+            {% if user.is_authenticated and user.is_superuser %}
+                <button class="tab-btn active" onclick="showTab('szlaki')">Szlaki</button>
+                <button class="tab-btn" onclick="showTab('obiekty')">Obiekty</button>
+                <button class="tab-btn" onclick="showTab('trasa')">Moja trasa</button>
+            {% else %}
+                <button class="tab-btn active" onclick="showTab('trasa')">Moja trasa</button>
+            {% endif %}
+        </div>
+
+        {% if user.is_authenticated and user.is_superuser %}
+        <div id="tab-szlaki" class="tab-content active">
+            <h2>Szlaki</h2>
+            <button class="btn-add" onclick="location.href='/dodaj-szlak/'">Dodaj szlak</button>
+            <div id="lista-szlaki">
+                <div class="empty-state">Ładowanie listy szlaków...</div>
+            </div>
+        </div>
+
+        <div id="tab-obiekty" class="tab-content">
+            <h2>Obiekty</h2>
+            <button class="btn-add" onclick="location.href='/dodaj-obiekt/'">Dodaj obiekt</button>
+            <div id="lista-obiekty">
+                <div class="empty-state">Ładowanie listy obiektów...</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="tab-trasa" class="tab-content {% if not user.is_authenticated or not user.is_superuser %}active{% endif %}">
+            <h2>Planowanie trasy</h2>
+            <p class="info-text">Kliknij na zielone pinezki (węzły) na mapie, aby dodać je do trasy.</p>
+            
+            <div id="trasa-stats" class="route-stats" style="display:none;">
+                <strong>Statystyki trasy:</strong><br>
+                Długość: <span id="trasa-dlugosc">0</span> km<br>
+                Węzłów: <span id="trasa-wezly">0</span>
+            </div>
+            
+            <button class="btn-add" style="background-color:#dc3545;" onclick="clearRoute()">Wyczyść trasę</button>
+            
+            <div id="lista-trasa">
+                <div class="empty-state">Trasa jest pusta. Kliknij na węzły na mapie, aby rozpocząć planowanie.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([43.5, 16.4], 10);
+    const layerObiekty = L.layerGroup().addTo(map);
+    const layerSzlaki = L.layerGroup().addTo(map);
+    const layerRegiony = L.layerGroup().addTo(map);
+    const layerTrasa = L.layerGroup().addTo(map);
+    
+    const colors = {
+        czerwony: 'red',
+        niebieski: 'blue',
+        zielony: 'green',
+        czarny: 'black'
+    };
+    
+    let mojaTrasa = [];
+    let grafWezlow = { wezly: [], szlaki: [] };
+    let wezlyMap = {};
+    let trybWstawiania = null;
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+        referrerPolicy: 'strict-origin-when-cross-origin'
+    }).addTo(map);
+
+    fetch('/api/graf-wezlow/')
+        .then(r => r.json())
+        .then(data => {
+            grafWezlow = data;
+            grafWezlow.wezly.forEach(w => {
+                wezlyMap[w.id] = w;
+            });
+        });
+
+    fetch('/api/obiekty/')
+        .then(r => r.json())
+        .then(data => {
+            const wezelIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                shadowSize: [41, 41]
+            });
+            
+            const defaultIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                shadowSize: [41, 41]
+            });
+            
+            L.geoJSON(data, {
+                pointToLayer: function(feature, latlng) {
+                    const isWezel = feature.properties.rodzaj && 
+                        (feature.properties.rodzaj.toLowerCase().includes('wezel') || 
+                         feature.properties.rodzaj.toLowerCase().includes('węzeł'));
+                    return L.marker(latlng, {
+                        icon: isWezel ? wezelIcon : defaultIcon
+                    });
+                },
+                onEachFeature: function(feature, layer) {
+                    const isWezel = feature.properties.rodzaj && 
+                        (feature.properties.rodzaj.toLowerCase().includes('wezel') || 
+                         feature.properties.rodzaj.toLowerCase().includes('węzeł'));
+                    
+                    layer.bindPopup(feature.properties.nazwa_obiektu + '<br>' + feature.properties.rodzaj);
+                    
+                    if (isWezel) {
+                        layer.on('click', function() {
+                            const wezelId = grafWezlow.wezly.find(w => 
+                                w.lat.toFixed(6) === layer.getLatLng().lat.toFixed(6) &&
+                                w.lon.toFixed(6) === layer.getLatLng().lng.toFixed(6)
+                            );
+                            
+                            if (!wezelId) {
+                                alert('Nie znaleziono węzła w grafie!');
+                                return;
+                            }
+                            
+                            dodajWezelDoTrasy(wezelId.id);
+                        });
+                    }
+                }
+            }).addTo(layerObiekty);
+        });
+
+    fetch('/api/szlaki/')
+        .then(r => r.json())
+        .then(data => {
+            L.geoJSON(data, {
+                style: function(feature) {
+                    return { 
+                        color: colors[feature.properties.kolor] || 'red', 
+                        weight: 3 
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup('Kolor: ' + feature.properties.kolor);
+                }
+            }).addTo(layerSzlaki);
+        });
+
+    fetch('/regiony_geojson/')
+        .then(r => r.json())
+        .then(data => {
+            L.geoJSON(data, {
+                style: { color: 'blue', weight: 1, fillOpacity: 0 },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(feature.properties.nazwa);
+                }
+            }).addTo(layerRegiony);
+        });
+
+    L.control.layers(null, {
+        'Regiony': layerRegiony,
+        'Szlaki': layerSzlaki,
+        'Obiekty': layerObiekty,
+        'Moja trasa': layerTrasa
+    }).addTo(map);
+
+    function dijkstra(start, end) {
+        if (start === end) {
+            return [{ wezel: start, szlak: null }];
+        }
+        
+        const distances = {};
+        const previous = {};
+        const unvisited = new Set();
+        
+        grafWezlow.wezly.forEach(w => {
+            distances[w.id] = Infinity;
+            previous[w.id] = null;
+            unvisited.add(w.id);
+        });
+        
+        distances[start] = 0;
+        
+        while (unvisited.size > 0) {
+            let current = null;
+            let minDist = Infinity;
+            unvisited.forEach(id => {
+                if (distances[id] < minDist) {
+                    minDist = distances[id];
+                    current = id;
+                }
+            });
+            
+            if (current === null || current === end) break;
+            
+            unvisited.delete(current);
+            
+            grafWezlow.szlaki.forEach(szlak => {
+                let sasiad = null;
+                
+                if (szlak.start === current) {
+                    sasiad = szlak.koniec;
+                } else if (szlak.koniec === current) {
+                    sasiad = szlak.start;
+                }
+                
+                if (sasiad && unvisited.has(sasiad)) {
+                    const alt = distances[current] + (szlak.dlugosc || 1000);
+                    if (alt < distances[sasiad]) {
+                        distances[sasiad] = alt;
+                        previous[sasiad] = { wezel: current, szlak: szlak };
+                    }
+                }
+            });
+        }
+        
+        if (distances[end] === Infinity) {
+            return null;
+        }
+        
+        const path = [];
+        let current = end;
+        
+        while (previous[current]) {
+            path.unshift({
+                wezel: current,
+                szlak: previous[current].szlak
+            });
+            current = previous[current].wezel;
+        }
+        
+        path.unshift({ wezel: start, szlak: null });
+        return path;
+    }
+
+    function dodajWezelDoTrasy(wezelId) {
+        if (trybWstawiania !== null) {
+            wstawWezelDoTrasy(wezelId, trybWstawiania);
+            return;
+        }
+        
+        const wezel = wezlyMap[wezelId];
+        
+        if (mojaTrasa.length === 0) {
+            mojaTrasa.push({
+                id: wezelId,
+                nazwa: wezel.nazwa,
+                sciezka: null
+            });
+        } else {
+            const ostatni = mojaTrasa[mojaTrasa.length - 1];
+            const sciezka = dijkstra(ostatni.id, wezelId);
+            
+            if (!sciezka) {
+                if (confirm('Brak bezpośredniego połączenia! Czy dodać węzeł bez ścieżki?')) {
+                    mojaTrasa.push({
+                        id: wezelId,
+                        nazwa: wezel.nazwa,
+                        sciezka: null
+                    });
+                }
+            } else {
+                mojaTrasa.push({
+                    id: wezelId,
+                    nazwa: wezel.nazwa,
+                    sciezka: sciezka
+                });
+            }
+        }
+        
+        updateRouteList();
+        updateRouteLayer();
+    }
+
+    function wstawWezelNaPozycji(pozycja) {
+        trybWstawiania = pozycja;
+        
+        const info = document.createElement('div');
+        info.id = 'info-wstawiania';
+        info.className = 'route-item';
+        info.style.background = '#fff3cd';
+        info.style.border = '1px solid #ffc107';
+        info.innerHTML = `
+            <strong>Tryb wstawiania:</strong> Kliknij węzeł na mapie<br>
+            <button class="btn" onclick="anulujWstawianie()" style="background:#6c757d; color:white; margin-top:5px;">Anuluj</button>
+        `;
+        
+        const lista = document.getElementById('lista-trasa');
+        const existingInfo = document.getElementById('info-wstawiania');
+        if (existingInfo) existingInfo.remove();
+        lista.insertBefore(info, lista.firstChild);
+    }
+
+    function anulujWstawianie() {
+        trybWstawiania = null;
+        const info = document.getElementById('info-wstawiania');
+        if (info) info.remove();
+    }
+
+    function wstawWezelDoTrasy(wezelId, pozycja) {
+        
+        const wezel = wezlyMap[wezelId];
+        const nastepny = mojaTrasa[pozycja];
+        let poprzedni = pozycja > 0 ? mojaTrasa[pozycja - 1] : null;
+        
+        let sciezkaOdPoprzedniego = null;
+        let sciezkaDoNastepnego = null;
+        
+        if (poprzedni) {
+            sciezkaOdPoprzedniego = dijkstra(poprzedni.id, wezelId);
+        }
+        if (nastepny) {
+            sciezkaDoNastepnego = dijkstra(wezelId, nastepny.id);
+        }
+        
+        const brakPolaczenia = (!poprzedni || sciezkaOdPoprzedniego) && (!nastepny || sciezkaDoNastepnego);
+        if (!brakPolaczenia && !confirm('Brak połączenia z sąsiednimi węzłami! Czy mimo to wstawić?')) {
+            anulujWstawianie();
+            return;
+        }
+        
+        const nowyWezel = {
+            id: wezelId,
+            nazwa: wezel.nazwa,
+            sciezka: sciezkaOdPoprzedniego
+        };
+        
+        mojaTrasa.splice(pozycja, 0, nowyWezel);
+        
+        if (nastepny && sciezkaDoNastepnego) {
+            mojaTrasa[pozycja + 1].sciezka = sciezkaDoNastepnego;
+        }
+        
+        anulujWstawianie();
+        updateRouteList();
+        updateRouteLayer();
+    }
+
+    function updateRouteLayer() {
+        layerTrasa.clearLayers();
+        
+        if (mojaTrasa.length < 2) return;
+        
+        for (let i = 1; i < mojaTrasa.length; i++) {
+            const segment = mojaTrasa[i];
+            
+            if (!segment.sciezka) {
+                const prev = wezlyMap[mojaTrasa[i-1].id];
+                const curr = wezlyMap[segment.id];
+                
+                L.polyline(
+                    [[prev.lat, prev.lon], [curr.lat, curr.lon]],
+                    { color: '#dc3545', weight: 4, dashArray: '10, 10' }
+                ).addTo(layerTrasa);
+            } else {
+                for (let j = 1; j < segment.sciezka.length; j++) {
+                    const szlak = segment.sciezka[j].szlak;
+                    if (szlak && szlak.geometria) {
+                        const coords = szlak.geometria.coordinates.map(c => [c[1], c[0]]);
+                        L.polyline(coords, { color: '#17a2b8', weight: 5 }).addTo(layerTrasa);
+                    }
+                }
+            }
+        }
+    }
+
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        if (tabName === 'szlaki') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('tab-szlaki').classList.add('active');
+            {% if user.is_superuser %}loadTrails();{% endif %}
+        } else if (tabName === 'obiekty') {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('tab-obiekty').classList.add('active');
+            {% if user.is_superuser %}loadObjects();{% endif %}
+        } else if (tabName === 'trasa') {
+            const idx = {% if user.is_superuser %}3{% else %}1{% endif %};
+            document.querySelector(`.tab-btn:nth-child(${idx})`).classList.add('active');
+            document.getElementById('tab-trasa').classList.add('active');
+        }
+    }
+
+    {% if user.is_superuser %}
+    function loadTrails() {
+        fetch('/api/szlaki-lista/')                 
+            .then(r => r.json())
+            .then(trails => {
+                const div = document.getElementById('lista-szlaki');
+                div.innerHTML = trails.length === 0 
+                    ? '<div class="empty-state">Brak szlaków w bazie</div>'
+                    : trails.map(t => {
+                        const len = t.dlugosc ? (t.dlugosc / 1000).toFixed(1) : 'brak';
+                        return `
+                            <div class="list-item">
+                                
+                                Start: ${t.start || '–'}<br>
+                                Koniec: ${t.koniec || '–'}<br>
+                                Długość: ${len} km
+                                <div style="margin-top:8px">
+                                    <button class="btn btn-edit" onclick="location.href='/edytuj-szlak/${t.id}/'">Edytuj</button>
+                                    <button class="btn btn-delete" onclick="deleteTrail(${t.id})">Usuń</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+            });
+    }
+
+    function deleteTrail(id) {
+        if (confirm(`Czy na pewno usunąć szlak ${id}?`)) {
+            fetch(`/usun-szlak/${id}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(() => location.reload());
+        }
+    }
+
+    function loadObjects() {
+        fetch('/api/obiekty-lista/')
+            .then(r => r.json())
+            .then(objects => {
+                const div = document.getElementById('lista-obiekty');
+                div.innerHTML = objects.length === 0
+                    ? '<div class="empty-state">Brak obiektów w bazie</div>'
+                    : objects.map(o => `
+                        <div class="list-item">
+                            <strong>${o.nazwa}</strong><br>
+                            Rodzaj: ${o.rodzaj || '–'}<br>
+                            Miejscowość: ${o.miejscowosc || '–'}
+                            <div style="margin-top:8px">
+                                <button class="btn btn-edit" onclick="location.href='/edytuj-obiekt/${o.id}/'">Edytuj</button>
+                                <button class="btn btn-delete" onclick="deleteObject(${o.id})">Usuń</button>
+                            </div>
+                        </div>
+                    `).join('');
+            });
+    }
+
+    function deleteObject(id) {
+        if (confirm(`Czy na pewno usunąć obiekt ${id}?`)) {
+            fetch(`/usun-obiekt/${id}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(() => location.reload());
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('tab-szlaki')?.classList.contains('active')) loadTrails();
+        if (document.getElementById('tab-obiekty')?.classList.contains('active')) loadObjects();
+    });
+    {% endif %}
+
+    function clearRoute() {
+        if (mojaTrasa.length > 0 && confirm('Czy na pewno wyczyścić trasę?')) {
+            mojaTrasa = [];
+            updateRouteList();
+            updateRouteLayer();
+        }
+    }
+
+    function removeFromRoute(index) {
+        const removedNode = mojaTrasa[index];
+        
+        mojaTrasa.splice(index, 1);
+        
+        if (mojaTrasa.length === 0) {
+            updateRouteList();
+            updateRouteLayer();
+            return;
+        }
+        
+        if (index === 0) {
+            mojaTrasa[0].sciezka = null;
+            
+            if (mojaTrasa.length > 1) {
+                const newPath = dijkstra(mojaTrasa[0].id, mojaTrasa[1].id);
+                mojaTrasa[1].sciezka = newPath || null;
+            }
+        } 
+        else if (index < mojaTrasa.length) {
+            const prevId = mojaTrasa[index-1].id;
+            const currId = mojaTrasa[index].id;
+            const newPath = dijkstra(prevId, currId);
+            mojaTrasa[index].sciezka = newPath || null;
+        }
+        
+        updateRouteList();
+        updateRouteLayer();
+    }
+
+    function updateRouteList() {
+        const div = document.getElementById('lista-trasa');
+        const stats = document.getElementById('trasa-stats');
+        
+        if (mojaTrasa.length === 0) {
+            div.innerHTML = '<div class="empty-state">Trasa jest pusta. Kliknij na węzły na mapie, aby rozpocząć planowanie.</div>';
+            stats.style.display = 'none';
+            return;
+        }
+        
+        stats.style.display = 'block';
+        document.getElementById('trasa-wezly').textContent = mojaTrasa.length;
+        
+        let totalLen = 0;
+        for (let i = 1; i < mojaTrasa.length; i++) {
+            const sciezka = mojaTrasa[i].sciezka;
+            if (sciezka) {
+                for (let j = 1; j < sciezka.length; j++) {
+                    if (sciezka[j].szlak && sciezka[j].szlak.dlugosc) {
+                        totalLen += sciezka[j].szlak.dlugosc;
+                    }
+                }
+            }
+        }
+        document.getElementById('trasa-dlugosc').textContent = (totalLen / 1000).toFixed(1);
+        
+        div.innerHTML = '';
+        
+        const startBtn = document.createElement('div');
+        startBtn.className = 'insert-btn start';
+        startBtn.innerHTML = '↑ Wstaw na początku ↑';
+        startBtn.onclick = () => wstawWezelNaPozycji(0);
+        div.appendChild(startBtn);
+        
+        for (let i = 0; i < mojaTrasa.length; i++) {
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'route-item';
+            nodeEl.innerHTML = `
+                <span>${i+1}. ${mojaTrasa[i].nazwa}</span>
+                <button class="btn btn-delete" onclick="removeFromRoute(${i})">Usuń</button>
+            `;
+            div.appendChild(nodeEl);
+            
+            if (i < mojaTrasa.length - 1) {
+                const insertBtn = document.createElement('div');
+                insertBtn.className = 'insert-btn middle';
+                insertBtn.innerHTML = '↓ Wstaw tutaj ↓';
+                insertBtn.onclick = () => wstawWezelNaPozycji(i + 1);
+                div.appendChild(insertBtn);
+            }
+        }
+        
+        const endInfo = document.createElement('div');
+        endInfo.style.cssText = 'text-align:center; padding:8px; background:#e7f3ff; margin:10px 0; border-radius:4px; font-size:13px; color:#17a2b8; border:1px dashed #17a2b8;';
+        endInfo.innerHTML = '↓ Kliknij węzeł na mapie, aby dodać na końcu ↓';
+        div.appendChild(endInfo);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    updateRouteList();
+</script>
+</body>
+</html>

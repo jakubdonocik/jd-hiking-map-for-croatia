@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rejestracja</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+        }
+        form {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .messages {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error-msg {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h2>Rejestracja</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="messages {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+        
+        <label>Imię:</label>
+        {{ form.imie }}
+        {% if form.imie.errors %}
+            <div class="error">{{ form.imie.errors }}</div>
+        {% endif %}
+        
+        <label>Nazwisko:</label>
+        {{ form.nazwisko }}
+        {% if form.nazwisko.errors %}
+            <div class="error">{{ form.nazwisko.errors }}</div>
+        {% endif %}
+        
+        <label>Email:</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+            <div class="error">{{ form.email.errors }}</div>
+        {% endif %}
+        
+        <label>Hasło:</label>
+        {{ form.haslo }}
+        {% if form.haslo.errors %}
+            <div class="error">{{ form.haslo.errors }}</div>
+        {% endif %}
+        
+        <label>Powtórz hasło:</label>
+        {{ form.haslo2 }}
+        {% if form.haslo2.errors %}
+            <div class="error">{{ form.haslo2.errors }}</div>
+        {% endif %}
+        
+        <button type="submit">Zarejestruj się</button>
+    </form>
+    
+    <div class="link">
+        Masz już konto? <a href="{% url 'login' %}">Zaloguj się</a>
+    </div>
+    <div class="link">
+        <a href="{% url 'mapa' %}">Powrót do mapy</a>
+    </div>
+</body>
+</html>

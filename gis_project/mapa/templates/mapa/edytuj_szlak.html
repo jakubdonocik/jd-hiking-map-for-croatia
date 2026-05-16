@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edytuj szlak</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        select, input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h2>Edytuj szlak #{{ szlak.id }}</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding:10px; background:#d4edda; border:1px solid #c3e6cb; margin-bottom:15px;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <label>Kolor szlaku:</label>
+        <select name="kolor" required>
+            <option value="czerwony" {% if szlak.kolor == 'czerwony' %}selected{% endif %}>Czerwony</option>
+            <option value="niebieski" {% if szlak.kolor == 'niebieski' %}selected{% endif %}>Niebieski</option>
+            <option value="zielony" {% if szlak.kolor == 'zielony' %}selected{% endif %}>Zielony</option>
+            <option value="czarny" {% if szlak.kolor == 'czarny' %}selected{% endif %}>Czarny</option>
+            <option value="żółty" {% if szlak.kolor == 'żółty' %}selected{% endif %}>Żółty</option>
+        </select>
+        
+        <label>Węzeł początkowy:</label>
+        <input list="wezly_start" id="start_szlaku_input" placeholder="Wpisz nazwę..." autocomplete="off" required>
+        <input type="hidden" id="start_szlaku" name="start_szlaku" value="{{ szlak.start_szlaku.id }}" required>
+        <datalist id="wezly_start">
+            {% for wezel in wezly %}
+                <option value="{{ wezel.id_obiektu.nazwa_obiektu }}"></option>
+            {% endfor %}
+        </datalist>
+        
+        <label>Węzeł końcowy:</label>
+        <input list="wezly_koniec" id="koniec_szlaku_input" placeholder="Wpisz nazwę..." autocomplete="off" required>
+        <input type="hidden" id="koniec_szlaku" name="koniec_szlaku" value="{{ szlak.koniec_szlaku.id }}" required>
+        <datalist id="wezly_koniec">
+            {% for wezel in wezly %}
+                <option value="{{ wezel.id_obiektu.nazwa_obiektu }}"></option>
+            {% endfor %}
+        </datalist>
+        
+        <label>Nowy plik GPX (opcjonalne - zostaw puste aby zachować):</label>
+        <input type="file" name="gpx_file" accept=".gpx">
+        
+        <button type="submit">Zapisz zmiany</button>
+        <a href="/" style="margin-left: 10px;">Anuluj</a>
+    </form>
+    
+    <script>
+        const wezlyMap = {};
+        {{ wezly_json|safe }}.forEach(w => wezlyMap[w.nazwa] = w.id);
+        
+        const startNazwa = "{{ szlak.start_szlaku.id_obiektu.nazwa_obiektu }}";
+        const koniecNazwa = "{{ szlak.koniec_szlaku.id_obiektu.nazwa_obiektu }}";
+        
+        document.getElementById('start_szlaku_input').value = startNazwa;
+        document.getElementById('koniec_szlaku_input').value = koniecNazwa;
+        
+        document.getElementById('start_szlaku_input').addEventListener('input', e => {
+            const id = wezlyMap[e.target.value];
+            document.getElementById('start_szlaku').value = id || '';
+        });
+        
+        document.getElementById('koniec_szlaku_input').addEventListener('input', e => {
+            const id = wezlyMap[e.target.value];
+            document.getElementById('koniec_szlaku').value = id || '';
+        });
+    </script>
+</body>
+</html>
